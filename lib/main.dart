@@ -173,6 +173,31 @@ class DeviceScreen extends StatelessWidget {
       math.nextInt(88)
     ];
   }
+  void conversion(String valores){
+    //temperatura
+    String temperaturaStr=valores.substring(1,3);
+    int temperatura=int.parse(temperaturaStr);
+
+    if(valores[0]=='-')
+      temperatura=temperatura*(-1);
+
+    //Personas
+    String personasStr=valores.substring(4,5);
+    int personas=int.parse(personasStr);
+
+    if(valores[3]=='-')
+      personas=personas*(-1);
+
+    //Humedad
+    int humedad=int.parse(valores.substring(5,7));
+
+    globals.temperatura=temperatura;
+    globals.personas=personas;
+    globals.humedad=humedad;
+  }
+
+
+
 
   List<Widget> _buildServiceTiles(List<BluetoothService> services)  {
     return services
@@ -183,36 +208,28 @@ class DeviceScreen extends StatelessWidget {
                 .map(
                   (c) => CharacteristicTile(
                     characteristic: c,
-                    onReadPressed: () async{
+                    onReadPressed: () async {
                       //c.read();
-                      globals.datos2=c.read();
-                      List list = await globals.datos2 ;
-                      print("Dato son " + list.toString() + " Finalziacion de datos");
-                      var character=utf8.decode(list);
-                      print(character.runtimeType);
-                      globals.temperaturaStr = character.substring(0,3);
-                      globals.humedadStr = character.substring(5,7);
-                      globals.perosnasStr = character.substring(3,5);
-                      //globals.temperatura=utf8.decode(list.getRange(0, 3));
-                      print(globals.temperaturaStr);
-                      print(globals.perosnasStr);
-                      print(globals.humedadStr);
+                      List list;
+                      print("Entramos al on read pressed");
+                      if(globals.contador==0){
+                        globals.conectado=true;
+                        globals.contador=1;
+                        while(globals.conectado==true){
 
-
+                          globals.datos2=c.read();
+                          await Future.delayed(Duration(seconds: 5));
+                          //print(globals.datos2);
+                          list= await globals.datos2 ;
+                          var character=utf8.decode(list);
+                          print(character);
+                          this.conversion(character);
+                          print(globals.temperatura.toString());
+                          print(globals.humedad.toString());
+                          print(globals.personas.toString());
+                        }
+                      }
                     }  ,
-                    onWritePressed: () async {
-                      await c.write(_getRandomBytes(), withoutResponse: true);
-                      await c.read();
-                    },
-                    descriptorTiles: c.descriptors
-                        .map(
-                          (d) => DescriptorTile(
-                            descriptor: d,
-                            onReadPressed: () => d.read(),
-                            onWritePressed: () => d.write(_getRandomBytes()),
-                          ),
-                        )
-                        .toList(),
                   ),
                 )
                 .toList(),
@@ -230,6 +247,7 @@ class DeviceScreen extends StatelessWidget {
           StreamBuilder<BluetoothDeviceState>(
             stream: device.state,
             initialData: BluetoothDeviceState.connecting,
+
             builder: (c, snapshot) {
               VoidCallback onPressed;
               String text;
@@ -237,14 +255,13 @@ class DeviceScreen extends StatelessWidget {
                 case BluetoothDeviceState.connected:
                   onPressed = () => device.disconnect();
                   text = 'DESCONECTAR';
+                  globals.contador=0;
                   break;
                 case BluetoothDeviceState.disconnected:
-                  onPressed = () {
-                    device.connect();
-                    //device.discoverServices();
-
-                  };
                   text = 'CONECTAR';
+                  onPressed = () async {
+                    device.connect();
+                  };
                   break;
                 default:
                   onPressed = null;
@@ -317,4 +334,5 @@ class DeviceScreen extends StatelessWidget {
       ),
     );
   }
+
 }

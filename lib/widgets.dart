@@ -50,54 +50,51 @@ class ScanResultTile extends StatelessWidget {
 class ServiceTile extends StatelessWidget {
   final BluetoothService service;
   final List<CharacteristicTile> characteristicTiles;
+  final BluetoothCharacteristic characteristic;
+  final VoidCallback onReadPressed;
 
-  const ServiceTile({Key key, this.service, this.characteristicTiles})
+  const ServiceTile({
+    Key key,
+    this.service,
+    this.characteristicTiles,
+    this.characteristic,
+    this.onReadPressed,})
       : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    if (characteristicTiles.length > 0) {
+    if (characteristicTiles.length > 0 && (service.uuid.toString().toUpperCase().substring(4, 8))=="1101") {
+      final value=globals.datos3;
 
-      return ExpansionTile(
-        title: Column(
+      return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text('Servicios a chequear'),
-            Text('0x${service.uuid.toString().toUpperCase().substring(4, 8)}',)
+          children:
+            //Text("hola"),
+            characteristicTiles,
+            //Text('Servicios a chequear'),
+            //Text('0x${service.uuid.toString().toUpperCase().substring(4, 8)}',)
 
-          ],
-        ),
-        children: characteristicTiles,
+
+        //children: characteristicTiles,
       );
     } else {
-      return ListTile(
-        title: Text('Servicios a chequear'),
-        subtitle:
-            Text('0x${service.uuid.toString().toUpperCase().substring(4, 8)}'),
+      return Row(
       );
     }
   }
+
 }
 
 class CharacteristicTile extends StatelessWidget {
   final BluetoothCharacteristic characteristic;
-  final List<DescriptorTile> descriptorTiles;
   final VoidCallback onReadPressed;
-  final VoidCallback onWritePressed;
-  final VoidCallback onNotificationPressed;
 
   const CharacteristicTile(
       {Key key,
       this.characteristic,
-      this.descriptorTiles,
-      this.onReadPressed,
-      this.onWritePressed,
-      this.onNotificationPressed})
+      this.onReadPressed})
       : super(key: key);
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -107,102 +104,42 @@ class CharacteristicTile extends StatelessWidget {
       initialData: characteristic.lastValue,
       builder: (c, snapshot) {
         final value = snapshot.data;
+        print("El valor value es " + value.toString());
         globals.datos= snapshot.data;
-        print("Entramos");
-        if(characteristic.uuid.toString().toUpperCase().substring(4, 8)=="2102"){
-          print("Este es el codigo a enviar cada 3 seugndos");
-        }
-        return ExpansionTile(
-          title: ListTile(
-            title: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                //gradiente(characteristic.uuid.toString().toUpperCase().substring(4, 8)),
-                Text('Caracteristicas a validar'),
-                Text('0x${characteristic.uuid.toString().toUpperCase().substring(4, 8)}',),
-                if(characteristic.uuid.toString().toUpperCase().substring(4, 8)=="2102")
-                  Text('Hola'),
 
-              ],
-            ),
-            subtitle: Text(value.toString()), //El value son los datos recibidos en DECIMAL
-            contentPadding: EdgeInsets.all(0.0),
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              IconButton(
-                icon: Icon(
-                  Icons.file_download,
-                  color: Theme.of(context).iconTheme.color.withOpacity(0.5),
-                ),
-                onPressed: onReadPressed,
-                  //globals.datos=value, onReadPressed
+        if(characteristic.uuid.toString().toUpperCase().substring(4, 8)=="2102"){
+          //print("Este es el codigo a enviar cada 3 seugndos");
+          //onReadPressed;
+
+          return Padding(
+            //BOTON COMENZAR
+            padding: EdgeInsets.symmetric(
+                horizontal: 00.0, vertical: 24.0),
+            child: Container(
+              height: MediaQuery.of(context).size.height * 0.08,
+              width: MediaQuery.of(context).size.width * 1,
+              child: RaisedButton(
+                onPressed: (){
+                  onReadPressed();
+                  },
+                child: Text("Actualziar datos",
+                    style: TextStyle(fontSize:35)),
+                textColor: Colors.white,
+                color: Colors.green,
+
+                padding: EdgeInsets.fromLTRB(10, 10, 10, 10),
               ),
-            ],
-          ),
-          children: descriptorTiles,
-        );
+            ),
+          );
+        }else{
+        return Row();
+        }
       },
     );
   }
 
-
-  String getNiceDecimalArray(List<int> bytes) {
-    return '[${bytes.map((i) => i.toRadixString(16).padLeft(2, '0')).join(', ')}]'
-        .toUpperCase();
-  }
 }
 
-class DescriptorTile extends StatelessWidget {
-  final BluetoothDescriptor descriptor;
-  final VoidCallback onReadPressed;
-  final VoidCallback onWritePressed;
-
-  const DescriptorTile(
-      {Key key, this.descriptor, this.onReadPressed, this.onWritePressed})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      title: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text('Descriptor'),
-          Text('0x${descriptor.uuid.toString().toUpperCase().substring(4, 8)}',
-              )
-        ],
-      ),
-      subtitle: StreamBuilder<List<int>>(
-        stream: descriptor.value,
-        initialData: descriptor.lastValue,
-        builder: (c, snapshot) => Text(snapshot.data.toString()),
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          IconButton(
-            icon: Icon(
-              Icons.file_download,
-              color: Theme.of(context).iconTheme.color.withOpacity(0.5),
-            ),
-            onPressed: onReadPressed,
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.file_upload,
-              color: Theme.of(context).iconTheme.color.withOpacity(0.5),
-            ),
-            onPressed: onWritePressed,
-          )
-        ],
-      ),
-    );
-  }
-}
 
 class AdapterStateTile extends StatelessWidget {
   const AdapterStateTile({Key key, @required this.state}) : super(key: key);
