@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:flutter_blue_example/widgets.dart';
 import 'globals.dart' as globals;
+import 'requests.dart' as requests;
 
 void main() {
   runApp(FlutterBlueApp());
@@ -197,7 +198,30 @@ class DeviceScreen extends StatelessWidget {
   }
 
 
+  void cambiarEstado(){
+    if (globals.estado=='RECIBIR DATOS'){
+      globals.estado='PAUSAR';
+      globals.conectado=true;
+      globals.datos_recibidos='ÚLTIMOS DATOS RECIBIDOS';
+      globals.iterable=1;
+    }
+    else{
+      globals.estado='RECIBIR DATOS';
+      globals.conectado=false;
+      if(globals.iterable>0)
+        globals.datos_recibidos='ÚLTIMOS DATOS RECIBIDOS';
+      else
+        globals.datos_recibidos='AUN NO HAS RECIBIDO DATOS';
+    }
+  }
 
+  void superado(){
+    if (globals.max_aforo<globals.aforo_actual){
+      globals.aforo_superado=true;
+    } else{
+      globals.aforo_superado=false;
+    }
+  }
 
   List<Widget> _buildServiceTiles(List<BluetoothService> services)  {
     return services
@@ -211,23 +235,30 @@ class DeviceScreen extends StatelessWidget {
                     onReadPressed: () async {
                       //c.read();
                       List list;
+
+                      //cambiarEstado();
                       print("Entramos al on read pressed");
                       if(globals.contador==0){
-                        globals.conectado=true;
+                        //globals.conectado=true;
                         globals.contador=1;
+                        globals.nombre_dispositivo=device.name;
                         while(globals.conectado==true){
-
                           globals.datos2=c.read();
-                          await Future.delayed(Duration(seconds: 5));
-                          //print(globals.datos2);
                           list= await globals.datos2 ;
                           var character=utf8.decode(list);
                           print(character);
                           this.conversion(character);
+                          globals.valores=character;
                           print(globals.temperatura.toString());
                           print(globals.humedad.toString());
                           print(globals.personas.toString());
+                          superado();
+                          globals.iterable++;
+                          requests.addDatos();
+                          await Future.delayed(Duration(seconds: 5));
                         }
+                      }else{
+                        globals.contador=0;
                       }
                     }  ,
                   ),
@@ -253,14 +284,23 @@ class DeviceScreen extends StatelessWidget {
               String text;
               switch (snapshot.data) {
                 case BluetoothDeviceState.connected:
-                  onPressed = () => device.disconnect();
                   text = 'DESCONECTAR';
+                  globals.existe_conexion=false;
                   globals.contador=0;
+                  globals.conectado=false;
+                  globals.estado='RECIBIR DATOS';
+                  onPressed = () {
+                      Navigator.pop(context);
+                      device.disconnect();
+                  } ;
+
                   break;
                 case BluetoothDeviceState.disconnected:
                   text = 'CONECTAR';
+                  globals.existe_conexion=true;
                   onPressed = () async {
                     device.connect();
+                    requests.start();
                   };
                   break;
                 default:
